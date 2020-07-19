@@ -358,9 +358,164 @@ if __name__ == "__main__":
 ---
 
 ## 适配器模式
+将一个类的接口转换成客户希望的另外一个接口。适配器模式使得原本由于接口不兼容而不能一起工作的那些类可以一起工作。
+#### code:
+```
+class Target(object):
+    def request(self):
+        print("normal request")
+
+
+class Adaptee(object):
+    def special_request(self):
+        print("special request")
+
+
+class Adapter(Target):
+    def __init__(self):
+        self.adaptee = Adaptee()
+
+    def request(self):
+        self.adaptee.special_request()
+
+
+if __name__ == "__main__":
+    target = Adapter()
+    target.request()
+```
+
+---
+
 ## 装饰器模式
+动态地给一个对象添加一些额外的职责。就增加功能来说，装饰器模式相比生成子类更为灵活
+#### code:
+```
+import functools
+
+
+def memoize(fn):
+    known = dict()
+
+    @functools.wraps(fn)
+    def memoizer(*args):
+        if args not in known:
+            known[args] = fn(*args)
+        return known[args]
+
+    return memoizer
+
+@memoize
+def nsum(n):
+    assert(n >= 0), "n must be >= 0"
+    return 0 if n == 0 else n + nsum(n - 1)
+
+@memoize
+def fibonacci(n):
+    assert(n >= 0), "n must be >= 0"
+    return n if n in (0, 1) else fibonacci(n - 1) + fibonacci(n - 2)
+
+
+if __name__ == "__main__":
+    from timeit import Timer
+    measure = [{"exec": "fibonacci(100)", "import": "fibonacci", "func": fibonacci},
+               {"exec": "nsum(200)", "import": "nsum", "func": nsum}]
+
+    for m in measure:
+        t = Timer("{}".format(m["exec"]), "from __main__ import {}".format(m["import"]))
+        print("name: {}, doc: {}, executing: {}, time: {}".format(m["func"].__name__, m["func"].__doc__,
+                                                                  m["exec"], t.timeit()))
+```
+
+---
+
 ## 代理模式
+为其他对象提供一种代理以控制对这个对象的访问
+#### code:
+```
+from abc import ABCMeta, abstractmethod
+
+
+class Subject(metaclass=ABCMeta):
+    @abstractmethod
+    def get_content(self):
+        pass
+
+    def set_content(self, content):
+        pass
+
+
+class RealSubject(Subject):
+    def __init__(self, file_name):
+        self.file_name = file_name
+        print("{}'s content is".format(file_name))
+        f = open(file_name)
+        self.__content = f.read()
+        f.close()
+
+    def get_content(self):
+        return self.__content
+
+    def set_content(self, content):
+        f = open(self.file_name, "w")
+        f.write(content)
+        self.__content = content
+        f.close()
+
+
+# ------远程代理------
+class ProxyA(Subject):
+    def __init__(self, file_name):
+        self.subj = RealSubject(file_name)
+
+    def get_content(self):
+        return self.subj.get_content()
+
+    def set_content(self, content):
+        return self.subj.set_content(content)
+
+
+# ------虚代理------
+class ProxyB(Subject):
+    def __init__(self, file_name):
+        self.file_name = file_name
+        self.subj = None
+
+    def get_content(self):
+        if not self.subj:
+            self.subj = RealSubject(self.file_name)
+        return self.subj.get_content()
+
+
+# ------保护代理------
+class ProxyC(Subject):
+    def __init__(self, file_name):
+        self.subj = RealSubject(file_name)
+
+    def get_content(self):
+        self.subj.get_content()
+
+    def set_content(self, content):
+        raise PermissionError
+
+
+if __name__ == "__main__":
+    x = ProxyB('abc.txt')
+    print(x.get_content())
+
+    file_name = "abc.txt"
+    username = input("input name:")
+    if username != "ZMZ":
+        p = ProxyC(file_name)
+    else:
+        p = ProxyA(file_name)
+    print(p.get_content())
+
+```
+
+---
+
 ## 外观模式
+
 ## 桥接模式
 ## 组合模式
 ## 享元模式
@@ -375,3 +530,8 @@ if __name__ == "__main__":
 ## 访问者模式
 ## 中介者模式
 ## 解释器模式
+
+## 参考：
++ https://www.cnblogs.com/tangkaishou/p/9246353.html
++ https://www.cnblogs.com/taosiyu/p/11293949.html
++ https://www.runoob.com/design-pattern/design-pattern-tutorial.html
