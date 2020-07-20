@@ -1360,8 +1360,212 @@ if __name__ == "__main__":
 ---
 
 ## 访问者模式
+主要将数据结构与数据操作分离
+#### code:
+```
+class Node(object):
+    pass
+
+
+class A(Node):
+    pass
+
+
+class B(Node):
+    pass
+
+
+class C(A, B):
+    pass
+
+
+class Visitor(object):
+    def visit(self, node, *args, **kwargs):
+        meth = None
+        for cls in node.__class__.__mro__:
+            meth_name = "visit_" + cls.__name__
+            meth = getattr(self, meth_name, None)
+            if meth:
+                break
+        if not meth:
+            meth = self.generic_visit
+        return meth(node, *args, **kwargs)
+
+    def generic_visit(self, node, *args, **kwargs):
+        print("generic_visit " + node.__class__.__name__)
+
+    def visit_B(self, node, *args, **kwargs):
+        print("visit_B " + node.__class__.__name__)
+
+
+if __name__ == "__main__":
+    a = A()
+    b = B()
+    c = C()
+    visitor = Visitor()
+    visitor.visit(a)
+    visitor.visit(b)
+    visitor.visit(c)
+```
+
+---
+
 ## 中介者模式
+用一个中介对象来封装一系列的对象交互，中介者使各对象不需要显示地互相引用，从而使其耦合松散，而且可以独立地改变它们之间的交互
+#### code:
+```
+import time
+
+
+class TC:
+    def __init__(self):
+        self._tm = tm
+        self._bProblem = 0
+
+    def setup(self):
+        print("Setting up the Test")
+        time.sleep(1)
+        self._tm.prepare_reporting()
+
+    def execute(self):
+        if not self._bProblem:
+            print("Executing the test")
+            time.sleep(1)
+        else:
+            print("Problem in setup. Test not executed.")
+
+    def tear_down(self):
+        if not self._bProblem:
+            print("Tearing down")
+            time.sleep(1)
+            self._tm.publish_report()
+        else:
+            print("Test not executed. No tear down required")
+
+    def set_tm(self, tm):
+        self._tm = tm
+
+    def set_problem(self, value):
+        self._bProblem = value
+
+
+class Reporter:
+    def __init__(self):
+        self._tm = None
+
+    def prepare(self):
+        print("Reporter Class is preparing to report the results")
+        time.sleep(1)
+
+    def report(self):
+        print("Reporting the results of Test")
+        time.sleep(1)
+
+    def set_tm(self, tm):
+        self._tm = tm
+
+
+class DB:
+    def __init__(self):
+        self._tm = None
+
+    def insert(self):
+        print("Inserting the execution begin status in the Database")
+        time.sleep(1)
+        import random
+        if random.randrange(1, 4) == 3:
+            return -1
+
+    def update(self):
+        print("Updating the test results in Database")
+        time.sleep(1)
+
+    def set_tm(self, tm):
+        self._tm = tm
+
+
+class TestManager:
+    def __init__(self):
+        self._reporter = None
+        self._db = None
+        self._tc = None
+
+    def prepare_reporting(self):
+        rvalue = self._db.insert()
+        if rvalue == -1:
+            self._tc.set_problem(1)
+            self._reporter.prepare()
+
+    def set_reporter(self, reporter):
+        self._reporter = reporter
+
+    def set_db(self, db):
+        self._db = db
+
+    def publish_report(self):
+        self._db.update()
+        rvalue = self._reporter.report()
+
+    def set_tc(self, tc):
+        self._tc = tc
+
+
+if __name__ == "__main__":
+    reporter = Reporter()
+    db = DB()
+    tm = TestManager()
+    tm.set_reporter(reporter)
+    tm.set_db(db)
+    reporter.set_tm(tm)
+    db.set_tm(tm)
+
+    while True:
+        tc = TC()
+        tc.set_tm(tm)
+        tm.set_tc(tc)
+        tc.setup()
+        tc.execute()
+        tc.tear_down()
+```
+
+---
+
 ## 解释器模式
+给定一个语言，定义它的文法表示，并定义一个解释器，这个解释器使用该标识来解释语言中的句子
+```
+class Context:
+    def __init__(self):
+        self.input = ""
+        self.output = ""
+
+
+class AbstractExpression:
+    def interpret(self, context):
+        pass
+
+
+class Expression(AbstractExpression):
+    def interpret(self, context):
+        print("terminal interpret")
+
+
+class NoTerminalExpression(AbstractExpression):
+    def interpret(self, context):
+        print("No terminal interpret")
+
+
+if __name__ == "__main__":
+    context = ""
+    c = []
+    c = c + [Expression()]
+    c = c + [NoTerminalExpression()]
+    c = c + [Expression()]
+    c = c + [Expression()]
+    for a in c:
+        a.interpret(context)
+```
+
+---
 
 ## 参考：
 + https://www.cnblogs.com/tangkaishou/p/9246353.html
